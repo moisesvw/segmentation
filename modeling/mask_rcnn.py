@@ -24,6 +24,7 @@ class SegmentationConfig(Config):
   NAME = "SegmentationConfig"
   IMAGES_PER_GPU = 2
   NUM_CLASSES = 1 + 9 # background + 9
+  STEPS_PER_EPOCH = 10 #1000
 
 class SegmentationDataset(utils.Dataset):
   ALL_CLASSES = [
