@@ -1,30 +1,17 @@
 import os
 import sys
-import random
-import cv2
-import math
-import time
-import numpy as np
-import re
-import glob
 
 ROOT_DIR = os.path.abspath('../models/Mask_RCNN')
-#import mask rcnn
 sys.path.append(ROOT_DIR)
 
 from mrcnn.config import Config
 from mrcnn import utils
-import mrcnn.model as modellib
-from mrcnn.model import log
-
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")
-COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
 
 class SegmentationConfig(Config):
   NAME = "SegmentationConfig"
   IMAGES_PER_GPU = 2
   NUM_CLASSES = 1 + 9 # background + 9
-  STEPS_PER_EPOCH = 10 #1000
+  STEPS_PER_EPOCH = 1000 #1000
 
 class SegmentationDataset(utils.Dataset):
   ALL_CLASSES = [
@@ -92,7 +79,7 @@ class SegmentationDataset(utils.Dataset):
 
   def load_mask(self, image_id):
     image_name = self.image_info[image_id]['image_name']
-    path = "../data/train_label/"+ image_name +"_instanceIds.png"
+    path = DATA_DIR+"/train_label/"+ image_name +"_instanceIds.png"
     image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
     ids = []
 
@@ -113,39 +100,3 @@ class SegmentationDataset(utils.Dataset):
 
     ids = np.array(ids, dtype=np.int32)
     return masks, ids
-
-
-config = SegmentationConfig()
-config.display()
-dataset_train = SegmentationDataset()
-dataset_train.load_cvpr_images(glob.glob('../data/train_color/*.jpg')[:500])
-dataset_train.prepare()
-
-dataset_val = SegmentationDataset()
-dataset_val.load_cvpr_images(glob.glob('../data/train_color/*.jpg')[:100])
-dataset_val.prepare()
-
-# Create model in training mode
-model = modellib.MaskRCNN(mode="training", config=config,
-                          model_dir=MODEL_DIR)
-
-# Which weights to start with?
-init_with = "coco"  # imagenet, coco, or last
-
-if init_with == "imagenet":
-    model.load_weights(model.get_imagenet_weights(), by_name=True)
-elif init_with == "coco":
-    # Load weights trained on MS COCO, but skip layers that
-    # are different due to the different number of classes
-    # See README for instructions to download the COCO weights
-    model.load_weights(COCO_MODEL_PATH, by_name=True,
-                       exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", 
-                                "mrcnn_bbox", "mrcnn_mask"])
-elif init_with == "last":
-    # Load the last model you trained and continue training
-    model.load_weights(model.find_last()[1], by_name=True)
-
-model.train(dataset_train, dataset_val, 
-            learning_rate=config.LEARNING_RATE, 
-            epochs=1, 
-            layers='heads')
