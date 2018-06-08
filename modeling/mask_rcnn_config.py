@@ -1,5 +1,7 @@
 import os
 import sys
+import cv2
+import numpy as np
 
 ROOT_DIR = os.path.abspath('../models/Mask_RCNN')
 sys.path.append(ROOT_DIR)
@@ -12,6 +14,10 @@ class SegmentationConfig(Config):
   IMAGES_PER_GPU = 2
   NUM_CLASSES = 1 + 9 # background + 9
   STEPS_PER_EPOCH = 1000 #1000
+
+class InferenceConfig(SegmentationConfig):
+  GPU_COUNT = 1
+  IMAGES_PER_GPU = 1
 
 class SegmentationDataset(utils.Dataset):
   ALL_CLASSES = [
@@ -79,7 +85,7 @@ class SegmentationDataset(utils.Dataset):
 
   def load_mask(self, image_id):
     image_name = self.image_info[image_id]['image_name']
-    path = DATA_DIR+"/train_label/"+ image_name +"_instanceIds.png"
+    path = "../data/train_label/"+ image_name +"_instanceIds.png"
     image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
     ids = []
 
