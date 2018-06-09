@@ -2,6 +2,9 @@ import os
 import sys
 import cv2
 import numpy as np
+import time
+from skimage.io import imsave
+from multiprocessing import Pool
 
 ROOT_DIR = os.path.abspath('../models/Mask_RCNN')
 sys.path.append(ROOT_DIR)
@@ -106,3 +109,80 @@ class SegmentationDataset(utils.Dataset):
 
     ids = np.array(ids, dtype=np.int32)
     return masks, ids
+
+class Prediction():
+
+  def __init__(self, dataset, mask_prediction_path, cores=1):
+    self.dataset = dataset
+    self.mask_prediction_path = mask_prediction_path
+    self.core = cores
+
+
+  def find_pixels(self, mask):
+      endcoded_pixels = []
+      total_pixels = 0
+      for i in range(mask.shape[0]):
+          init = 0
+          end = 0
+          carry = i*mask.shape[1]
+          for j in range(1, mask.shape[1]):
+              if mask[i, j] > 0 and mask[i, j - 1] == 0:
+                  init = j + carry
+
+              if mask[i, j] == 0 and mask[i, j - 1] > 0:
+                  end = j-init + carry
+                  endcoded_pixels.append( str(init) + ' ' +  str(end) ) 
+                  total_pixels += end
+                  init = 0
+                  end = 0
+
+      return endcoded_pixels, total_pixels
+
+
+  def process_result(self, r, image_name, image_id):
+      data = []
+      for i in range(len(r['scores'])):
+          mask_idx = i
+          confidence = r['scores'][i]
+          label_id = r['class_ids'][i]
+          mask = r['masks'][:, :, i]
+          rois = r['rois'][i]
+
+          data_point = {}
+          old_id = self.dataset.CLASS_ID_TO_NAME[label_id]['old_id']
+          mask_path = "{}{}_{}.jpg".format( self.mask_prediction_path, image_name, str(mask_idx) )
+          mask_name = mask_path
+          imsave(mask_name, mask)
+
+          data_point['ImageId'] = image_name
+          data_point['LabelId'] = old_id
+          data_point['Confidence'] = confidence
+          data_point['PixelCount'] = 0
+          data_point['rois'] = rois
+          data_point['EncodedPixels'] = mask_name
+
+          data.append(data_point)
+
+      return data
+
+  def generate_results(self, model):
+    pool = Pool(processes=8)
+    test_results = []
+    jobs = []
+    t3 = time.time()
+    for test_id in self.dataset.image_ids:
+        if (test_id % 50) == 0:
+            print(test_id)
+        results = model.detect([self.dataset.load_image(test_id)], verbose=0)
+        r = results[0]
+
+        image_name = self.dataset.image_info[test_id]['image_name']
+
+        p_result = pool.apply_async(self.process_result, (r, image_name, test_id) )
+        jobs.append(p_result)
+
+    for job in jobs:
+        p_result = job.get(timeout=20)
+        test_results = test_results + p_result
+    t3_ = time.time()
+    print("Time for all takes:", t3_ - t3)
