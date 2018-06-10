@@ -10,11 +10,12 @@ import shutil
 
 class Prediction():
 
-  def __init__(self, dataset, mask_prediction_path, cores=1):
+  def __init__(self, dataset, mask_prediction_path, data_dir, cores=1):
+    self.data_dir = data_dir
     self.dataset = dataset
     self.mask_prediction_path = mask_prediction_path
     self.core = cores
-    self.mapping_md5_images_names = glob.glob("../data/test_video_list_and_name_mapping/list_test_mapping/*.txt")
+    self.mapping_md5_images_names = glob.glob(self.data_dir + "/test_video_list_and_name_mapping/list_test_mapping/*.txt")
     self.test_mask_dir = mask_prediction_path
 
   def find_pixels(self, mask):

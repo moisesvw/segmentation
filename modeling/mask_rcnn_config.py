@@ -20,6 +20,11 @@ class InferenceConfig(SegmentationConfig):
   IMAGES_PER_GPU = 1
 
 class SegmentationDataset(utils.Dataset):
+
+  def __init__(self, data_dir):
+    utils.Dataset.__init__(self)
+    self.data_dir = data_dir
+
   ALL_CLASSES = [
               ('bicycle', 35),
               ('bicycle_group', 163),
@@ -85,7 +90,7 @@ class SegmentationDataset(utils.Dataset):
 
   def load_mask(self, image_id):
     image_name = self.image_info[image_id]['image_name']
-    path = "../data/train_label/"+ image_name +"_instanceIds.png"
+    path = self.data_dir + "/train_label/"+ image_name +"_instanceIds.png"
     image = cv2.imread(path, cv2.IMREAD_UNCHANGED)
     ids = []
 
