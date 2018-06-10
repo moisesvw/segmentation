@@ -108,11 +108,15 @@ class Prediction():
           path = frames.iloc[j][1].split("\\")[-1].split(".")[-2]
           preds = glob.glob(self.test_mask_dir + image_id + "*jpg")
           camera_folder = self.test_mask_dir + path
+
+          if not os.path.exists(camera_folder + "_instanceIds.txt"):
+            shutil.move(self.test_mask_dir + image_id + "_instanceIds.txt", camera_folder + "_instanceIds.txt" )
+
           if os.path.exists(camera_folder):
               print("Warning already exists: ", camera_folder)
-
           else:
               os.makedirs(camera_folder)
           for p_mask in preds:
-              shutil.move(p_mask, camera_folder + "/" + p_mask.split("/")[-1] )
+              image_instance_id = p_mask.split("/")[-1]
+              shutil.move(p_mask, camera_folder + "/" + image_instance_id )
 
